@@ -1,6 +1,11 @@
-# Docker Tutorial 07
+# Docker Tutorial 
 
-Advanced Networking with PHP & MySQL
+1. build our docker container
+	docker-compose up 
+
+2. go to localhost:8080
+	
+## How it works
 
 ### Create our database Dockerfile in ./db
 
@@ -20,26 +25,6 @@ RUN docker-php-ext-install xdebug
 RUN docker-php-ext-enable xdebug
 ```
 
-### Setup our network in the docker compose file
-
-```
-version: "3"
-
-networks:
-  tut07-frontend:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.10.1.0/24
-  tut07-backend:
-    driver: bridge
-    ipam: 
-      driver: default
-      config:
-        - subnet: 172.10.2.0/23
-```
-
 ### Create a database environment file
 
 ```
@@ -48,48 +33,82 @@ MYSQL_PASSWORD=sys_password
 MYSQL_ROOT_PASSWORD=root_password
 ```
 
-### Add the database container
+### Setup our network in the docker compose file
 
 ```
+version: "3"
+networks:
+  dev-frontend:
+    driver: bridge  /** bridge driver is needed **/
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.10.1.0/24  
+  dev-backend:
+    driver: bridge /** bridge driver is needed **/
+    ipam: 
+      driver: default
+      config:
+        - subnet: 172.10.2.0/23
+```
+
+ We Create two networks. A network to serve our frontend and a network to serve out backend.
+
+
+### Add the database container
+now we set up the services. These services will run on the networks we created previously
+
+```
+
 services:
-  tut07-db:
+  dev-db:
     build: ./db
     command: --default-authentication-plugin=mysql_native_password
     ports:
       - 3306:3306
     networks:
-      tut07-backend:
+      dev-backend:
         ipv4_address: 172.10.3.2
     env_file:
       - ./development.env
 ```
+This is our mysql service
+the first service is named dev-db.
+the network it will run on is dev-backend
+we can also include a env file
 
 ### Add the web container
 
 ```
-  tut07-www:
+  dev-www:
     build: ./www
     ports:
       - 8080:80
     volumes:
       - ./src:/var/www/html/
     networks:
-      tut07-backend:
+      dev-backend:
         ipv4_address: 172.10.2.2
-      tut07-frontend:
+      dev-frontend:
         ipv4_address: 172.10.1.2
     depends_on:
-      - tut07-db
+      - dev-db
     env_file:
       - ./development.env
 ```
+
+this is our web container that
+we name it dev-www
+we use port 8080
+the networks we use is dev-backend and dev-front-end. Notice how our backend service is serving our db and our backend.
+we add our dependent dev-db
 
 ### PHP Script to test the networking
 
 ```
 <?php
 
-$mysqli = new mysqli('tut07-db', getenv('MYSQL_USER'), getenv('MYSQL_PASSWORD'), 'information_schema');
+$mysqli = new mysqli('dev-db', getenv('MYSQL_USER'), getenv('MYSQL_PASSWORD'), 'information_schema');
 
 if ($mysqli->connect_error) {
     echo 'Connection Error [', $mysqli->connect_errno, ']: ', $mysqli->connect_error;
@@ -103,6 +122,7 @@ if ($mysqli->connect_error) {
 ```
 docker-compose up
 ```
+Then go to localhost:8080
 
 ### To destroy the setup
 
