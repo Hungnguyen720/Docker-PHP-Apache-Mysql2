@@ -1,9 +1,10 @@
 # Docker Tutorial 
 
-1. build our docker container
-	docker-compose up 
+### build our docker container
 
-2. go to localhost:8080
+```
+docker-compose up 
+```
 	
 ## How it works
 
